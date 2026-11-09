@@ -18,8 +18,8 @@ public final class StudentMetrics {
             return 0.0;
         }
         double sum = 0.0;
-        for (Student s : students) {
-            sum += s.average();
+        for (Student student : students) {
+            sum += student.getAverage();
         }
         // sum має тип double, тому дробова частина зберігається.
         return sum / students.size();
@@ -33,8 +33,8 @@ public final class StudentMetrics {
      */
     public static double maxScore(List<Student> students) {
         double max = 0.0;
-        for (Student s : students) {
-            max = Math.max(max, s.average());
+        for (Student student : students) {
+            max = Math.max(max, student.getAverage());
         }
         return max;
     }
@@ -43,15 +43,29 @@ public final class StudentMetrics {
      * Кількість стипендіатів.
      *
      * @param students коректні записи
-     * @return кількість записів зі scholarship = true
+     * @return кількість студентів зі стипендією
      */
     public static int countScholarship(List<Student> students) {
         int count = 0;
-        for (Student s : students) {
-            if (s.scholarship()) {
+        for (Student student : students) {
+            if (student.isScholarship()) {
                 count++;
             }
         }
         return count;
+    }
+
+    /**
+     * Збирає всі чотири показники варіанта 6 в один незмінний record.
+     *
+     * @param students коректні записи
+     * @return підсумкові показники
+     */
+    public static GradeScholarship summarize(List<Student> students) {
+        return new GradeScholarship(
+                students.size(),
+                averageScore(students),
+                maxScore(students),
+                countScholarship(students));
     }
 }

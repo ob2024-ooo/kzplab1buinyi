@@ -1,95 +1,85 @@
-# Консольна обробка даних реєстру студентів засобами Java
+# Реєстр студентів: класи, record та інкапсуляція (лабораторна №2, варіант 6)
 
 ## Призначення
 
-Лабораторна робота № 1 з дисципліни «Кросплатформні засоби програмування», варіант 6, предметна область «Реєстр студентів», рівень 1 (базовий).
+Друга версія консольної програми з лабораторної роботи № 1. Рядки й паралельні змінні замінено власними класами: запис про студента описує клас `Student`, підсумок показників зберігає `record GradeScholarship`. Зовнішня поведінка не змінилася: програма читає ті самі дані, відкидає ті самі хибні рядки й виводить такий самий звіт.
 
-Консольна програма читає записи про студентів із CSV-файлу, перевіряє їхню коректність, обчислює показники та формує текстовий звіт у консоль і файл. Некоректні рядки не зупиняють програму: вона пропускає їх і повідомляє номер рядка та причину пропуску.
+Рівень виконання: 1 (базовий).
+
+## Що змінилося порівняно з лабораторною № 1
+
+| Стан | Лабораторна № 1 | Лабораторна № 2 |
+|---|---|---|
+| Один запис | `record Student` без перевірки | `final class Student` з `private final` полями |
+| Перевірка | умови в циклі `StudentParser` | конструктор `Student` і фабрика `Student.fromCsv` |
+| Набір даних | `List<Student>` | `List<Student>` (тепер усі об'єкти коректні за побудовою) |
+| Допоміжний результат | чотири окремі змінні | `record GradeScholarship` |
+| Звіт | текст із чотирьох показників | той самий текст (порівняно побайтово) |
+
+## Клас-сутність `Student`
+
+Поля: `name`, `group`, `course`, `average`, `scholarship`. Усі `private final`, сеттерів немає.
+
+Інваріанти (перевіряє конструктор):
+
+| Поле | Правило |
+|---|---|
+| `name`, `group` | не `null` і не порожні |
+| `course` | ціле від 1 до 6 |
+| `average` | число від 0 до 100, не `NaN` |
+| `scholarship` | `true` або `false` (розбирає `fromCsv`) |
+
+Методи: `getName()`, `getGroup()`, `getCourse()`, `getAverage()`, `isScholarship()`, `toString()` (формат із `Locale.ROOT`), статична фабрика `fromCsv(String line)`.
+
+`fromCsv` відповідає за структуру рядка (5 полів, типи), конструктор за значення. Номер рядка в повідомленні додає цикл читання в `StudentParser`.
+
+## record `GradeScholarship`
+
+Незмінні підсумки варіанта 6: `count`, `averageScore`, `maxScore`, `scholarshipCount`. Компактний конструктор перевіряє, що кількість не від'ємна, стипендіатів не більше, ніж записів, а бали в діапазоні 0-100.
 
 ## Формат вхідних даних
 
-Файл `data/input.csv`: кодування UTF-8, один запис в одному рядку, поля розділені крапкою з комою `;`. Коментарів у файлі немає.
+Файл у UTF-8, один запис у рядку, поля розділені `;` (як у лабораторній № 1):
 
 ```text
 name;group;course;average;scholarship
 ```
 
-| Поле | Тип | Правило перевірки |
-|---|---|---|
-| `name` | String | не порожнє |
-| `group` | String | не порожнє |
-| `course` | int | ціле число від 1 до 6 |
-| `average` | double | число від 0 до 100, десяткова частина через крапку |
-| `scholarship` | boolean | лише `true` або `false` |
-
-Приклад:
-
-```text
-Іваненко Олена;КІ-303;3;92.5;true
-Петренко Андрій;КІ-301;2;78.0;false
-Коваль Марія;КІ-302;4;88.4;true
-Шевченко Ігор;КІ-303;3;-5;false
-Мельник Оксана;КІ-301;abc;80;true
-;КІ-303;2;70;false
-Бондар Петро;КІ-302;2;75
-```
-
-Рядок пропускається, якщо він порожній, має кількість полів не 5, містить порожнє текстове поле, нечислове або від'ємне число, значення поза межами чи некоректне логічне поле.
-
-## Показники
-
-1. Кількість коректних записів.
-2. Середній бал.
-3. Найбільший бал.
-4. Кількість стипендіатів.
-
-Числа виводяться з двома знаками після крапки незалежно від локалі системи (`Locale.ROOT`).
-
 ## Вимоги
 
-- JDK 21 (підійде 17 і новіша; `record` та `String.formatted` потребують щонайменше Java 16)
-- Git (для клонування репозиторію)
-
-Перевірка версії:
-
-```bash
-java -version
-javac -version
-```
+JDK 21 (підійде 17 і новіша).
 
 ## Збирання та запуск
-
-Команди виконуються з кореня проєкту.
 
 macOS / Ubuntu:
 
 ```bash
 javac -encoding UTF-8 -d out/classes src/main/java/*.java
-java -Dfile.encoding=UTF-8 -cp out/classes Main
+java -cp out/classes Main
 ```
 
 Windows (PowerShell):
 
 ```powershell
 javac -encoding UTF-8 -d out\classes src\main\java\*.java
-java -Dfile.encoding=UTF-8 -cp out\classes Main
+java -cp out\classes Main
 ```
 
-Якщо в консолі Windows замість літер з'являються некоректні символи, виконайте `chcp 65001` і запустіть програму знову. Файл звіту при цьому записується правильно.
+Параметри: `--help`, `--input FILE` (за замовчуванням `data/input.csv`), `--output FILE` (за замовчуванням `out/report.txt`).
 
-## Параметри командного рядка
+## Перевірка збереження поведінки
 
-| Параметр | Дія |
-|---|---|
-| `--help` | показати довідку |
-| `--input FILE` | вхідний файл (за замовчуванням `data/input.csv`) |
-| `--output FILE` | файл звіту (за замовчуванням `out/report.txt`) |
-
-Приклади:
+Файл `baseline/lab01-report.txt` містить вивід програми лабораторної № 1 на тих самих даних. Після перебудови виводи мають збігатися:
 
 ```bash
-java -cp out/classes Main --help
-java -Dfile.encoding=UTF-8 -cp out/classes Main --input data/input.csv --output out/report.txt
+java -cp out/classes Main --output out/report.txt
+diff baseline/lab01-report.txt out/report.txt && echo "Звіт збігається"
+```
+
+Додаткові крайові випадки лежать у `data/edge-cases.csv`:
+
+```bash
+java -cp out/classes Main --input data/edge-cases.csv --output out/edge-report.txt
 ```
 
 ## Приклад виводу
@@ -107,56 +97,27 @@ java -Dfile.encoding=UTF-8 -cp out/classes Main --input data/input.csv --output 
 Рядок 7: очікується 5 полів, знайдено 4
 ```
 
-Той самий текст записується у файл `out/report.txt` (UTF-8).
-
 ## Структура проєкту
 
 ```text
-kzp-lab01-buinyi/
-├── .gitignore
 ├── README.md
 ├── REPORT.md
-├── screenshots/
+├── .gitignore
+├── baseline/
+│   ├── lab01-input.csv
+│   └── lab01-report.txt
 ├── data/
-│   └── input.csv
-└── src/
-    └── main/
-        └── java/
-            ├── Student.java
-            ├── StudentParser.java
-            ├── StudentMetrics.java
-            ├── ReportFormatter.java
-            └── Main.java
+│   ├── input.csv
+│   └── edge-cases.csv
+└── src/main/java/
+    ├── Student.java
+    ├── GradeScholarship.java
+    ├── StudentParser.java
+    ├── StudentMetrics.java
+    ├── ReportFormatter.java
+    └── Main.java
 ```
-
-| Клас | Призначення |
-|---|---|
-| `Student` | модель одного запису (`record`) |
-| `StudentParser` | читання й перевірка рядків, створення об'єктів `Student`, повідомлення про помилки |
-| `StudentMetrics` | обчислення середнього, максимуму та кількості стипендіатів |
-| `ReportFormatter` | формування тексту звіту без обчислень |
-| `Main` | аргументи командного рядка, робота з файлами, вивід у консоль |
-
-Потік даних:
-
-```text
-data/input.csv → StudentParser → List<Student> → StudentMetrics → ReportFormatter → консоль і файл
-```
-
-## Кросплатформність
-
-- шляхи будуються через `Path.of(...)`;
-- кодування UTF-8 задається явно (`StandardCharsets.UTF_8`);
-- роздільник рядків у звіті: `%n`;
-- десяткові числа форматуються через `Locale.ROOT`;
-- каталог для звіту створюється програмою, якщо його немає.
 
 ## Документація
 
-Javadoc додано до всіх класів, методу `main` і нетривіальних методів (`parse`, `averageScore`, `maxScore`, `countScholarship`, `format`). Детальний опис роботи наведено в `REPORT.md`.
-
-## Рівень виконання
-
-Рівень 1 (базовий): Maven, автоматичні тести, GitHub Actions, Issues і Pull Request не використовуються.
-
-
+Javadoc додано до класів, конструкторів, фабричного методу, методів читання та `record`. Детальний опис наведено в `REPORT.md`.
