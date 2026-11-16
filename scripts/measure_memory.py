@@ -1,64 +1,67 @@
-"""Порівнює пікову пам'ять і час: список записів проти потокової обробки."""
+"""Порівнює пам'ять і час: словникова та об'єктна моделі на однакових даних."""
 
 from __future__ import annotations
 
-import random
 import sys
 import time
 import tracemalloc
-from itertools import islice
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from kzp_lab06.analysis import make_summary, stream_summary  # noqa: E402
-from kzp_lab06.loader import iter_records, load_records  # noqa: E402
-from kzp_lab06.reporting import format_report  # noqa: E402
+from kzp_lab07.models import Bachelor, Master  # noqa: E402
 
-ROWS = 200_000
+ROWS = 100_000
 
 
-def generate(path: Path, rows: int = ROWS) -> None:
-    """Створює великий CSV (детерміновано, зерно 6)."""
-    rng = random.Random(6)
-    with path.open("w", encoding="utf-8", newline="") as target:
-        target.write("full_name,group,year,average\n")
-        for number in range(rows):
-            target.write(
-                f"Студент {number},КІ-{300 + number % 9},{1 + number % 6},"
-                f"{rng.uniform(40, 100):.1f}\n"
-            )
+def make_dicts() -> list[dict]:
+    """Створює записи як словники (модель лабораторної №6)."""
+    return [
+        {
+            "full_name": f"Студент {i}",
+            "group": f"КІ-{300 + i % 9}",
+            "year": 1 + i % 6,
+            "average": 40 + (i % 600) / 10,
+        }
+        for i in range(ROWS)
+    ]
 
 
-def measure(label: str, action) -> dict[str, object]:
-    """Вимірює пікову пам'ять (tracemalloc) і час однієї дії."""
+def make_objects() -> list:
+    """Створює ті самі записи як об'єкти Bachelor і Master."""
+    result = []
+    for i in range(ROWS):
+        year = 1 + i % 6
+        kind = Bachelor if year <= 4 else Master
+        result.append(
+            kind(f"Студент {i}", f"КІ-{300 + i % 9}", year, 40 + (i % 600) / 10)
+        )
+    return result
+
+
+def measure(label: str, action) -> None:
+    """Вимірює пік пам'яті (tracemalloc) і час створення записів."""
     tracemalloc.start()
     started = time.perf_counter()
-    summary = action()
+    data = action()
     elapsed = time.perf_counter() - started
-    _, peak = tracemalloc.get_traced_memory()
+    current, peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
-    print(f"{label}: пік {peak / 1024 / 1024:.2f} МіБ, {elapsed:.2f} с")
-    return summary
+    print(
+        f"{label}: {len(data)} записів, у пам'яті {current / 1024 / 1024:.2f} МіБ, "
+        f"пік {peak / 1024 / 1024:.2f} МіБ, {elapsed:.2f} с"
+    )
 
 
 def main() -> int:
-    """Запускає порівняння та перевіряє, що результати однакові."""
-    # Явний UTF-8 для консолі: типове кодування Windows не знає українських літер.
+    """Запускає порівняння."""
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(encoding="utf-8")
-    path = ROOT / "data" / "big.csv"
-    generate(path)
-    first_rows = list(islice(iter_records(path), 3))  # itertools.islice: лише 3 записи
-    print(f"Перші записи без читання всього файла: {len(first_rows)}")
-    by_list = measure("список записів", lambda: make_summary(load_records(path)))
-    by_stream = measure("потоковий режим", lambda: stream_summary(iter_records(path)))
-    same = format_report(by_list) == format_report(by_stream)
-    print("Звіти однакові:", same)
-    path.unlink()
-    return 0 if same else 1
+    measure("словники", make_dicts)
+    measure("об'єкти ", make_objects)
+    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())

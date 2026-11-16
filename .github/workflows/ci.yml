@@ -2,7 +2,12 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
@@ -32,9 +37,9 @@ jobs:
       - name: CLI success and error exit codes
         shell: bash
         run: |
-          python -m kzp_lab06.cli data/input.csv reports/ci-summary.txt
+          python -m kzp_lab07.cli data/input.csv reports/ci-summary.txt
           set +e
-          python -m kzp_lab06.cli data/broken.csv reports/broken.txt
+          python -m kzp_lab07.cli data/broken.csv reports/broken.txt
           code=$?
           echo "exit code: $code"
           test "$code" -eq 1
