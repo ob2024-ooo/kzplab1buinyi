@@ -1,135 +1,112 @@
-# Реєстр студентів: Repository<T>, анотації та CSV (лабораторна №5, варіант 6)
+# Реєстр студентів: обробка даних засобами Python (лабораторна №6, варіант 6)
 
 ## Призначення
 
-П'ята версія консольної програми з лабораторних робіт №1-4. Додано параметризоване сховище `Repository<T>`, анотацію `@CsvColumn`, універсальний рефлексивний експортер `CsvExporter<T>`, імпорт CSV і власний перевірюваний виняток `CsvExportException` із причиною (`cause`). Звіти попередніх робіт не змінилися.
+Python-пакет `kzp_lab06` читає CSV реєстру студентів, перетворює рядки на типізовані записи, будує звіт за списками, словниками й множинами та записує його у текстовий файл. Є CLI, тести `pytest`, перевірка `ruff`, збирання wheel і GitHub Actions на Ubuntu, Windows та macOS.
 
-Рівень виконання: 1 (базовий).
+Рівень виконання: 3 (повний цикл) разом із завданням із зірочкою (потокова обробка).
 
-## Модель CSV (варіант 6)
+## Варіант 6
 
-Клас `LearnerRecord`: `fullName`, `group`, `studyYear`, `average`.
+| Параметр | Значення |
+|---|---|
+| Поля CSV | `full_name`, `group`, `year`, `average` |
+| Відбір | `average >= 90` (змінюється опцією `--threshold`) |
+| Словник | кількість відмінників за `group` |
+| Множина | унікальні групи |
+| Звіт | кількість записів і груп, відмінники, середній бал, найкращий результат |
 
-| Поле Java | Тип | Стовпець CSV |
-|---|---|---|
-| `average` | `double` | `середній бал` |
-| `fullName` | `String` | `ПІБ` |
-| `group` | `String` | `група` |
-| `studyYear` | `int` | `курс` |
+## Формат CSV
 
-Порядок стовпців визначається сортуванням Java-імен полів, тому заголовок завжди такий:
-
-```text
-середній бал,ПІБ,група,курс
+```csv
+full_name,group,year,average
+Іваненко Олена,КІ-303,3,92.5
+"Коваль, Марія ""Мері""",КІ-302,4,88.4
 ```
 
-Приклад рядка з екрануванням коми й лапок:
+UTF-8, перший рядок — заголовок. `year` — ціле від 1 до 6, `average` — число від 0 до 100. Кома, лапки й перенесення рядка в ПІБ екранує сам модуль `csv`. Файл лише із заголовком дає порожній коректний звіт; файл без заголовка, відсутній стовпець, порожнє або хибне значення дають `DataError` з номером рядка.
+
+## Структура
 
 ```text
-88.4,"Коваль, Марія ""Мері""",КІ-302,4
+├── pyproject.toml
+├── README.md
+├── report6.md
+├── .gitignore
+├── .github/workflows/ci.yml
+├── baseline/summary.txt        # еталонний звіт
+├── data/                       # input.csv, empty.csv, broken.csv, missing-column.csv
+├── reports/                    # вихідні звіти (не додаються до репозиторію)
+├── scripts/                    # verify_wheel.py, measure_memory.py
+├── src/kzp_lab06/
+│   ├── __init__.py
+│   ├── errors.py               # DataError
+│   ├── loader.py               # читання CSV, перетворення типів
+│   ├── analysis.py             # відбір, словник, множина, summarize, потоковий підсумок
+│   ├── reporting.py            # формат і запис звіту
+│   └── cli.py                  # аргументи й коди завершення
+└── tests/                      # 53 тести pytest
 ```
 
-Ключ round-trip: `fullName` + `group`; списки порівнюються через `equals`. Файли записуються й читаються в UTF-8, рядки розділяє `\n`.
-
-## Збирання та запуск
+## Запуск
 
 macOS / Ubuntu:
 
 ```bash
-javac -encoding UTF-8 -d out/classes src/main/java/*.java
-java -cp out/classes Main
-java -cp out/classes Main --input data/input-lab05.csv --export out/students.csv
-java -cp out/classes Main --import out/students.csv
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e ".[dev]"
+python -m kzp_lab06.cli data/input.csv reports/summary.txt
 ```
 
 Windows (PowerShell):
 
 ```powershell
-javac -encoding UTF-8 -d out\classes src\main\java\*.java
-java -cp out\classes Main
-java -cp out\classes Main --input data\input-lab05.csv --export out\students.csv
-java -cp out\classes Main --import out\students.csv
+python -m venv .venv
+.venv\Scripts\activate
+python -m pip install -e ".[dev]"
+python -m kzp_lab06.cli data\input.csv reports\summary.txt
 ```
 
-Параметри: `--help`, `--input FILE`, `--output FILE`, `--ratings`, `--queries`, `--find ПІБ`, `--export FILE` (записати студентів у CSV, прочитати назад і порівняти списки), `--import FILE` (прочитати CSV і вивести записи). Помилки CSV виводяться з повідомленням і причиною.
+Після встановлення доступна команда `kzp-lab06 data/input.csv reports/summary.txt`. Опції: `--threshold N` (межа відмінника), `--stream` (потокова обробка без збереження записів у пам'яті).
 
-## Перевірка збереження поведінки
+Коди завершення: `0` — успіх, `1` — помилка даних (`DataError`), `2` — помилка аргументів, `3` — помилка файла, `4` — неочікувана помилка.
+
+## Перевірка
 
 ```bash
-java -cp out/classes Main --output out/report.txt
-diff baseline/lab01-report.txt out/report.txt && echo "Звіт збігається"
-
-java -cp out/classes Main --input data/edge-cases.csv --output out/edge-report.txt
-diff baseline/lab02-edge-report.txt out/edge-report.txt && echo "Крайові випадки збігаються"
-
-java -cp out/classes Main --input data/input-lab03.csv --ratings --output out/ratings.txt
-diff baseline/lab03-ratings-report.txt out/ratings.txt && echo "Рейтинги збігаються"
-
-java -cp out/classes Main --input data/input-lab05.csv --export out/students.csv --output out/report5.txt
-diff baseline/lab05-export.csv out/students.csv && echo "CSV збігається"
+python -m pytest
+ruff check .
+ruff format --check .
+python -m build
+python scripts/verify_wheel.py
+diff baseline/summary.txt reports/wheel-summary.txt && echo "Звіт збігається"
 ```
 
-## Перевірки
+`scripts/verify_wheel.py` створює чисте середовище `.venv-wheel`, встановлює wheel із `dist/` без залежностей розробки (`--no-deps`), запускає CLI і порівнює звіт з еталоном. У PowerShell, якщо активація заборонена політикою, можна запускати `.venv\Scripts\python.exe` без активації.
 
-`checks/Lab05Check.java` (29 перевірок): сховище й незмінність знімка, анотація під час виконання, порядок і заголовок, екранування, інший доменний клас (`LocalDate`, enum), порожній набір, round-trip (6 записів, 8 фізичних рядків), порожній файл, хибний заголовок, хибна кількість полів, хибне число, хибне значення, незакриті лапки, помилки файла з перевіркою `getCause()`. `Lab03Check` і `Lab04Check` збережено.
-
-macOS / Ubuntu:
-
-```bash
-javac -encoding UTF-8 -cp out/classes -d out/checks checks/Lab03Check.java checks/Lab04Check.java checks/Lab05Check.java
-java -cp out/classes:out/checks Lab03Check
-java -cp out/classes:out/checks Lab04Check
-java -cp out/classes:out/checks Lab05Check
-```
-
-Windows (PowerShell, роздільник `;`):
-
-```powershell
-javac -encoding UTF-8 -cp out\classes -d out\checks checks\Lab03Check.java checks\Lab04Check.java checks\Lab05Check.java
-java -cp "out\classes;out\checks" Lab03Check
-java -cp "out\classes;out\checks" Lab04Check
-java -cp "out\classes;out\checks" Lab05Check
-```
-
-Очікувані останні рядки: `Усі перевірки пройдено` (двічі) і `Перевірок: 29, помилок: 0`.
-
-## Структура проєкту
+## Приклад звіту
 
 ```text
-├── README.md
-├── report5.md
-├── .gitignore
-├── baseline/
-│   ├── lab01-input.csv
-│   ├── lab01-report.txt
-│   ├── lab02-edge-report.txt
-│   ├── lab03-ratings-report.txt
-│   └── lab05-export.csv
-├── checks/
-│   ├── Lab03Check.java
-│   ├── Lab04Check.java
-│   └── Lab05Check.java
-├── data/
-│   ├── input.csv
-│   ├── input-lab03.csv
-│   ├── input-lab04.csv
-│   ├── input-lab05.csv
-│   ├── edge-cases.csv
-│   ├── empty-export.csv
-│   └── bad-export.csv
-└── src/main/java/
-    ├── Repository.java
-    ├── CsvColumn.java
-    ├── CsvExporter.java
-    ├── CsvParser.java
-    ├── LearnerRecord.java
-    ├── LearnerCsvImporter.java
-    ├── CsvExportException.java
-    └── (класи лабораторних №1-4: Learner, Bachelor, Master, StudyStatus,
-        LearnerFactory, LearnerQueries, GradeScholarship, StudentParser,
-        StudentMetrics, ReportFormatter, Main)
+Реєстр студентів: звіт
+Записів: 8
+Груп: 3
+Відмінників (середній бал >= 90.0): 4
+Відмінники за групами:
+КІ-301: 1
+КІ-303: 3
+Середній бал: 84.46
+Найкращий результат: Лисенко Ірина (КІ-303), 95.10
 ```
+
+## Потокова обробка (зірочка)
+
+`iter_records` — генератор, `stream_summary` обчислює підсумок за один прохід. Порівняння на 200 000 рядків: `python scripts/measure_memory.py`.
+
+## CI
+
+`.github/workflows/ci.yml` на Ubuntu, Windows та macOS запускає `pytest`, `ruff check`, `ruff format --check`, `python -m build`, перевірку wheel у чистому середовищі, успішний і помилковий сценарії CLI та публікує wheel як артефакт `wheel-<ОС>`.
 
 ## Документація
 
-Javadoc додано до нових класів і методів. Детальний опис наведено в `report5.md`.
+Усі модулі й функції мають docstrings. Детальний опис наведено в `report6.md`.
