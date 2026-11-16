@@ -1,49 +1,59 @@
-# Реєстр студентів: класи, record та інкапсуляція (лабораторна №2, варіант 6)
+# Реєстр студентів: спадкування, enum і поліморфізм (лабораторна №3, варіант 6)
 
 ## Призначення
 
-Друга версія консольної програми з лабораторної роботи № 1. Рядки й паралельні змінні замінено власними класами: запис про студента описує клас `Student`, підсумок показників зберігає `record GradeScholarship`. Зовнішня поведінка не змінилася: програма читає ті самі дані, відкидає ті самі хибні рядки й виводить такий самий звіт.
+Третя версія консольної програми з лабораторних робіт №1 і №2. Запис про студента тепер описує абстрактний базовий тип `Learner` з двома підтипами: `Bachelor` (бакалавр) і `Master` (магістр). Академічний статус задає enum `StudyStatus`. Розрахунок рейтингу реалізовано поліморфним методом `rating()`. Формат вхідних даних і звіт для основного файла не змінилися.
 
 Рівень виконання: 1 (базовий).
 
-## Що змінилося порівняно з лабораторною № 1
+## Що змінилося порівняно з лабораторною №2
 
-| Стан | Лабораторна № 1 | Лабораторна № 2 |
+| Стан | Лабораторна №2 | Лабораторна №3 |
 |---|---|---|
-| Один запис | `record Student` без перевірки | `final class Student` з `private final` полями |
-| Перевірка | умови в циклі `StudentParser` | конструктор `Student` і фабрика `Student.fromCsv` |
-| Набір даних | `List<Student>` | `List<Student>` (тепер усі об'єкти коректні за побудовою) |
-| Допоміжний результат | чотири окремі змінні | `record GradeScholarship` |
-| Звіт | текст із чотирьох показників | той самий текст (порівняно побайтово) |
+| Запис студента | `final class Student` | абстрактний `Learner` і підтипи `Bachelor`, `Master` |
+| Відмінна поведінка | немає | абстрактні `rating()` і `degree()`, перевизначені з `@Override` |
+| Категорія | прапорець `boolean scholarship` | enum `StudyStatus` (`SCHOLARSHIP`, `REGULAR`) з підписом і бонусом |
+| Створення з рядка | `Student.fromCsv` | `LearnerFactory.fromCsv` (підтип обирається за курсом) |
+| Рівність | не визначена | `equals` і `hashCode` за підтипом, ім'ям і групою |
+| Звіт | чотири показники | ті самі чотири показники; додатково `--ratings` |
 
-## Клас-сутність `Student`
+## Ієрархія
 
-Поля: `name`, `group`, `course`, `average`, `scholarship`. Усі `private final`, сеттерів немає.
+```text
+Learner (abstract)          спільні поля й інваріанти, rating(), degree()
+├── Bachelor   курси 1-4    rating = середній бал + бонус статусу
+└── Master     курси 5-6    rating = середній бал * 1.1 + бонус статусу
+StudyStatus (enum)          SCHOLARSHIP (+5.0), REGULAR (+0.0)
+```
 
-Інваріанти (перевіряє конструктор):
+Обрано спадкування, бо бакалавр і магістр є різновидами студента («є різновидом»), мають спільні поля та правила й відрізняються лише поведінкою. Композиція була б зручнішою, якби поведінка змінювалася під час життя об'єкта.
+
+## Правила перевірки
+
+Спільні інваріанти перевіряє конструктор `Learner` (їх немає в підтипах):
 
 | Поле | Правило |
 |---|---|
 | `name`, `group` | не `null` і не порожні |
 | `course` | ціле від 1 до 6 |
 | `average` | число від 0 до 100, не `NaN` |
-| `scholarship` | `true` або `false` (розбирає `fromCsv`) |
+| `status` | не `null` |
 
-Методи: `getName()`, `getGroup()`, `getCourse()`, `getAverage()`, `isScholarship()`, `toString()` (формат із `Locale.ROOT`), статична фабрика `fromCsv(String line)`.
+Підтипи додатково перевіряють курс: `Bachelor` від 1 до 4, `Master` від 5 до 6.
 
-`fromCsv` відповідає за структуру рядка (5 полів, типи), конструктор за значення. Номер рядка в повідомленні додає цикл читання в `StudentParser`.
+## Рівність
 
-## record `GradeScholarship`
-
-Незмінні підсумки варіанта 6: `count`, `averageScore`, `maxScore`, `scholarshipCount`. Компактний конструктор перевіряє, що кількість не від'ємна, стипендіатів не більше, ніж записів, а бали в діапазоні 0-100.
+Два студенти рівні, якщо вони одного підтипу й мають однакові ім'я та групу. Бал і статус у рівність не входять. Бакалавр і магістр з однаковими іменем та групою не рівні. `hashCode` обчислюється за тими самими полями (ім'я й група).
 
 ## Формат вхідних даних
 
-Файл у UTF-8, один запис у рядку, поля розділені `;` (як у лабораторній № 1):
+Файл у UTF-8, один запис у рядку, поля розділені `;` (як і раніше):
 
 ```text
 name;group;course;average;scholarship
 ```
+
+Підтип визначається курсом: 1-4 дає `Bachelor`, 5-6 дає `Master`.
 
 ## Вимоги
 
@@ -56,6 +66,7 @@ macOS / Ubuntu:
 ```bash
 javac -encoding UTF-8 -d out/classes src/main/java/*.java
 java -cp out/classes Main
+java -cp out/classes Main --input data/input-lab03.csv --ratings
 ```
 
 Windows (PowerShell):
@@ -63,54 +74,84 @@ Windows (PowerShell):
 ```powershell
 javac -encoding UTF-8 -d out\classes src\main\java\*.java
 java -cp out\classes Main
+java -cp out\classes Main --input data\input-lab03.csv --ratings
 ```
 
-Параметри: `--help`, `--input FILE` (за замовчуванням `data/input.csv`), `--output FILE` (за замовчуванням `out/report.txt`).
+Параметри: `--help`, `--input FILE` (за замовчуванням `data/input.csv`), `--output FILE` (за замовчуванням `out/report.txt`), `--ratings` (додати розділ «Рейтинги»).
 
 ## Перевірка збереження поведінки
 
-Файл `baseline/lab01-report.txt` містить вивід програми лабораторної № 1 на тих самих даних. Після перебудови виводи мають збігатися:
+Звіт для `data/input.csv` має збігатися з виводом лабораторної №1, а крайові випадки з виводом лабораторної №2:
 
 ```bash
 java -cp out/classes Main --output out/report.txt
 diff baseline/lab01-report.txt out/report.txt && echo "Звіт збігається"
+
+java -cp out/classes Main --input data/edge-cases.csv --output out/edge-report.txt
+diff baseline/lab02-edge-report.txt out/edge-report.txt && echo "Крайові випадки збігаються"
 ```
 
-Додаткові крайові випадки лежать у `data/edge-cases.csv`:
+## Перевірка нової моделі
+
+Програма `checks/Lab03Check.java` перевіряє підтипи, поліморфний виклик, enum, рівність у `HashSet` і негативні випадки (JUnit на рівні 1 не потрібен).
+
+macOS / Ubuntu:
 
 ```bash
-java -cp out/classes Main --input data/edge-cases.csv --output out/edge-report.txt
+javac -encoding UTF-8 -cp out/classes -d out/checks checks/Lab03Check.java
+java -cp out/classes:out/checks Lab03Check
 ```
 
-## Приклад виводу
+Windows (PowerShell, роздільник `;`):
+
+```powershell
+javac -encoding UTF-8 -cp out\classes -d out\checks checks\Lab03Check.java
+java -cp "out\classes;out\checks" Lab03Check
+```
+
+Очікуваний останній рядок: `Усі перевірки пройдено`.
+
+## Приклад виводу з рейтингами
 
 ```text
 Лабораторна робота №1, варіант 6
-Коректних записів: 3
-Середній бал: 86.30
-Найбільший бал: 92.50
-Кількість стипендіатів: 2
-Пропущено рядків: 4
-Рядок 4: середній бал має бути від 0 до 100
-Рядок 5: курс або бал має помилковий числовий формат
-Рядок 6: порожнє ім'я або група
+Коректних записів: 5
+Середній бал: 87.78
+Найбільший бал: 95.00
+Кількість стипендіатів: 3
+Пропущено рядків: 2
+Рядок 6: середній бал має бути від 0 до 100
 Рядок 7: очікується 5 полів, знайдено 4
+Рейтинги:
+Іваненко Олена (бакалавр, стипендіат): 97.50
+Петренко Андрій (бакалавр, без стипендії): 78.00
+Коваль Марія (бакалавр, стипендіат): 93.40
+Мельник Дмитро (магістр, без стипендії): 93.50
+Савчук Ірина (магістр, стипендіат): 109.50
 ```
 
 ## Структура проєкту
 
 ```text
 ├── README.md
-├── REPORT.md
+├── report3.md
 ├── .gitignore
 ├── baseline/
 │   ├── lab01-input.csv
-│   └── lab01-report.txt
+│   ├── lab01-report.txt
+│   └── lab02-edge-report.txt
+├── checks/
+│   └── Lab03Check.java
 ├── data/
 │   ├── input.csv
+│   ├── input-lab03.csv
 │   └── edge-cases.csv
 └── src/main/java/
-    ├── Student.java
+    ├── Learner.java
+    ├── Bachelor.java
+    ├── Master.java
+    ├── StudyStatus.java
+    ├── LearnerFactory.java
     ├── GradeScholarship.java
     ├── StudentParser.java
     ├── StudentMetrics.java
@@ -120,4 +161,4 @@ java -cp out/classes Main --input data/edge-cases.csv --output out/edge-report.t
 
 ## Документація
 
-Javadoc додано до класів, конструкторів, фабричного методу, методів читання та `record`. Детальний опис наведено в `REPORT.md`.
+Javadoc додано до всіх публічних класів, конструкторів, методів і enum. Детальний опис наведено в `report3.md`.

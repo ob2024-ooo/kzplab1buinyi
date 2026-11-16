@@ -31,4 +31,23 @@ public final class ReportFormatter {
         }
         return sb.toString();
     }
+
+    /**
+     * Формує додатковий розділ із рейтингами. Усі студенти обробляються через
+     * спільний тип {@link Learner}: метод {@code rating()} сам обирає
+     * реалізацію підтипу, тому тут немає {@code if} чи {@code switch} за типом.
+     *
+     * @param learners коректні студенти (бакалаври й магістри разом)
+     * @return текст розділу «Рейтинги»
+     */
+    public static String formatRatings(List<Learner> learners) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format(Locale.ROOT, "Рейтинги:%n"));
+        for (Learner learner : learners) {
+            sb.append(String.format(Locale.ROOT, "%s (%s, %s): %.2f%n",
+                    learner.getName(), learner.degree(),
+                    learner.getStatus().label(), learner.rating()));
+        }
+        return sb.toString();
+    }
 }
