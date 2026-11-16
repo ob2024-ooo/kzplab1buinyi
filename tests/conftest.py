@@ -4,8 +4,6 @@ from pathlib import Path
 
 import pytest
 
-HEADER = "full_name,group,year,average\n"
-
 
 @pytest.fixture
 def write_csv(tmp_path: Path):
