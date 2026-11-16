@@ -33,7 +33,7 @@ def main() -> int:
         [
             str(python),
             "-m",
-            "kzp_lab06.cli",
+            "kzp_lab07.cli",
             str(ROOT / "data" / "input.csv"),
             str(output),
         ],
