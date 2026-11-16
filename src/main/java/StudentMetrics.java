@@ -1,6 +1,10 @@
+import java.util.DoubleSummaryStatistics;
 import java.util.List;
 
-/** Обчислює показники за списком коректних студентів. */
+/**
+ * Обчислює показники за списком коректних студентів через Stream API.
+ * Результати збігаються з циклами лабораторних робіт № 1-3.
+ */
 public final class StudentMetrics {
 
     /* Забороняє створення екземплярів службового класу. */
@@ -14,15 +18,9 @@ public final class StudentMetrics {
      * @return середнє значення, або 0.0 для порожнього списку
      */
     public static double averageScore(List<Learner> students) {
-        if (students.isEmpty()) {
-            return 0.0;
-        }
-        double sum = 0.0;
-        for (Learner student : students) {
-            sum += student.getAverage();
-        }
-        // sum має тип double, тому дробова частина зберігається.
-        return sum / students.size();
+        DoubleSummaryStatistics statistics = LearnerQueries.scoreStatistics(students);
+        // Для порожнього потоку getAverage() уже дає 0.0, але перевірка робить це явним.
+        return statistics.getCount() == 0 ? 0.0 : statistics.getAverage();
     }
 
     /**
@@ -32,11 +30,9 @@ public final class StudentMetrics {
      * @return максимум, або 0.0 для порожнього списку
      */
     public static double maxScore(List<Learner> students) {
-        double max = 0.0;
-        for (Learner student : students) {
-            max = Math.max(max, student.getAverage());
-        }
-        return max;
+        DoubleSummaryStatistics statistics = LearnerQueries.scoreStatistics(students);
+        // Для порожнього потоку getMax() дорівнює -Infinity, тому потрібна перевірка.
+        return statistics.getCount() == 0 ? 0.0 : statistics.getMax();
     }
 
     /**
@@ -46,13 +42,7 @@ public final class StudentMetrics {
      * @return кількість студентів зі стипендією
      */
     public static int countScholarship(List<Learner> students) {
-        int count = 0;
-        for (Learner student : students) {
-            if (student.isScholarship()) {
-                count++;
-            }
-        }
-        return count;
+        return (int) students.stream().filter(Learner::isScholarship).count();
     }
 
     /**
