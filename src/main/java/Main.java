@@ -22,7 +22,9 @@ public final class Main {
      * @param args {@code --help}, {@code --input файл}, {@code --output файл},
      *             {@code --ratings} (додатково вивести рейтинги),
      *             {@code --queries} (додатково вивести запити Stream API),
-     *             {@code --find ПІБ} (пошук за ПІБ у розділі запитів)
+     *             {@code --find ПІБ} (пошук за ПІБ у розділі запитів),
+     *             {@code --export файл} (зберегти студентів у CSV і перевірити round-trip),
+     *             {@code --import файл} (прочитати CSV, створений експортом)
      */
     public static void main(String[] args) {
         // Явне UTF-8 для консолі: типове кодування Windows може не підтримувати українські літери.
@@ -36,11 +38,13 @@ public final class Main {
         boolean ratings = false;
         boolean queries = false;
         String find = null;
+        Path export = null;
+        Path importPath = null;
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
             if ("--help".equals(arg)) {
                 System.out.printf("Використання: java -cp out/classes Main "
-                        + "[--help] [--input <файл>] [--output <файл>] [--ratings] [--queries] [--find <ПІБ>]%n");
+                        + "[--help] [--input <файл>] [--output <файл>] [--ratings] [--queries] [--find <ПІБ>] [--export <файл>] [--import <файл>]%n");
                 return;
             } else if ("--ratings".equals(arg)) {
                 ratings = true;
@@ -49,6 +53,10 @@ public final class Main {
             } else if ("--find".equals(arg) && i + 1 < args.length) {
                 find = args[++i];
                 queries = true;
+            } else if ("--export".equals(arg) && i + 1 < args.length) {
+                export = Path.of(args[++i]);
+            } else if ("--import".equals(arg) && i + 1 < args.length) {
+                importPath = Path.of(args[++i]);
             } else if ("--input".equals(arg) && i + 1 < args.length) {
                 input = Path.of(args[++i]);
             } else if ("--output".equals(arg) && i + 1 < args.length) {
@@ -79,8 +87,37 @@ public final class Main {
                 Files.createDirectories(parent);
             }
             Files.writeString(output, report, StandardCharsets.UTF_8);
+            if (export != null) {
+                exportAndCheck(result.students(), export);
+            }
+            if (importPath != null) {
+                List<LearnerRecord> records = LearnerCsvImporter.read(importPath);
+                System.out.printf("Імпортовано записів: %d%n", records.size());
+                for (LearnerRecord record : records) {
+                    System.out.println(record);
+                }
+            }
         } catch (IOException e) {
             System.err.printf("Помилка файла: %s%n", e.getMessage());
+        } catch (CsvExportException e) {
+            // Причину не ховаємо: показуємо й повідомлення, і cause.
+            System.err.printf("Помилка CSV: %s%n", e.getMessage());
+            if (e.getCause() != null) {
+                System.err.printf("Причина: %s%n", e.getCause());
+            }
         }
+    }
+
+    /* Зберігає студентів у CSV, читає назад і порівнює списки через equals. */
+    private static void exportAndCheck(List<Learner> students, Path file) throws CsvExportException {
+        Repository<LearnerRecord> repository = new Repository<>();
+        for (Learner learner : students) {
+            repository.add(LearnerRecord.from(learner));
+        }
+        List<LearnerRecord> original = repository.all();
+        new CsvExporter<>(LearnerRecord.class).write(file, original);
+        List<LearnerRecord> restored = LearnerCsvImporter.read(file);
+        System.out.printf("Експортовано записів: %d (файл %s)%n", original.size(), file);
+        System.out.printf("Round-trip: %s%n", original.equals(restored) ? "списки рівні" : "списки відрізняються");
     }
 }
