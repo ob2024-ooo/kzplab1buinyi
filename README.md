@@ -1,59 +1,45 @@
-# Реєстр студентів: спадкування, enum і поліморфізм (лабораторна №3, варіант 6)
+# Реєстр студентів: потокова обробка даних (лабораторна №4, варіант 6)
 
 ## Призначення
 
-Третя версія консольної програми з лабораторних робіт №1 і №2. Запис про студента тепер описує абстрактний базовий тип `Learner` з двома підтипами: `Bachelor` (бакалавр) і `Master` (магістр). Академічний статус задає enum `StudyStatus`. Розрахунок рейтингу реалізовано поліморфним методом `rating()`. Формат вхідних даних і звіт для основного файла не змінилися.
+Четверта версія консольної програми з лабораторних робіт №1-3. Основні цикли обчислень замінено запитами Stream API в окремому класі `LearnerQueries`. Зовнішній формат звіту, вхідні дані та модель (`Learner`, `Bachelor`, `Master`, `StudyStatus`) не змінилися.
 
-Рівень виконання: 1 (базовий).
+Рівень виконання: 1 (базовий), реалізовано всі п'ять запитів і пошук `Optional`.
 
-## Що змінилося порівняно з лабораторною №2
+## Запити варіанта 6
 
-| Стан | Лабораторна №2 | Лабораторна №3 |
-|---|---|---|
-| Запис студента | `final class Student` | абстрактний `Learner` і підтипи `Bachelor`, `Master` |
-| Відмінна поведінка | немає | абстрактні `rating()` і `degree()`, перевизначені з `@Override` |
-| Категорія | прапорець `boolean scholarship` | enum `StudyStatus` (`SCHOLARSHIP`, `REGULAR`) з підписом і бонусом |
-| Створення з рядка | `Student.fromCsv` | `LearnerFactory.fromCsv` (підтип обирається за курсом) |
-| Рівність | не визначена | `equals` і `hashCode` за підтипом, ім'ям і групою |
-| Звіт | чотири показники | ті самі чотири показники; додатково `--ratings` |
+| № | Метод `LearnerQueries` | Операції | Результат |
+|---|---|---|---|
+| 1 | `excellent(list)` | `filter` (бал не нижче 90, межа включена) | `List<Learner>` |
+| 2 | `names(list)` | `map` (ПІБ) | `List<String>` |
+| 3 | `countByGroup(list)` | `groupingBy` + `counting` (ключ: група) | `Map<String, Long>` (`TreeMap`) |
+| 4 | `scoreStatistics(list)` | `summarizingDouble` (бал) | `DoubleSummaryStatistics` |
+| 5 | `top(list, n)` | `sorted` (бал спаданням, потім ПІБ) + `limit` | `List<Learner>` |
+| 6 | `findByName(list, name)` | `filter` + `findFirst` | `Optional<Learner>` |
 
-## Ієрархія
+Усі методи працюють зі спільним типом `Learner` без `if` за підтипом, не змінюють вхідну колекцію та не форматують вивід. Форматування виконує `ReportFormatter`.
 
-```text
-Learner (abstract)          спільні поля й інваріанти, rating(), degree()
-├── Bachelor   курси 1-4    rating = середній бал + бонус статусу
-└── Master     курси 5-6    rating = середній бал * 1.1 + бонус статусу
-StudyStatus (enum)          SCHOLARSHIP (+5.0), REGULAR (+0.0)
-```
+Показники звіту (`StudentMetrics`) тепер також обчислюються через потоки й дають ті самі значення, що й цикли.
 
-Обрано спадкування, бо бакалавр і магістр є різновидами студента («є різновидом»), мають спільні поля та правила й відрізняються лише поведінкою. Композиція була б зручнішою, якби поведінка змінювалася під час життя об'єкта.
+## Поведінка на крайових даних
 
-## Правила перевірки
-
-Спільні інваріанти перевіряє конструктор `Learner` (їх немає в підтипах):
-
-| Поле | Правило |
+| Випадок | Поведінка |
 |---|---|
-| `name`, `group` | не `null` і не порожні |
-| `course` | ціле від 1 до 6 |
-| `average` | число від 0 до 100, не `NaN` |
-| `status` | не `null` |
-
-Підтипи додатково перевіряють курс: `Bachelor` від 1 до 4, `Master` від 5 до 6.
-
-## Рівність
-
-Два студенти рівні, якщо вони одного підтипу й мають однакові ім'я та групу. Бал і статус у рівність не входять. Бакалавр і магістр з однаковими іменем та групою не рівні. `hashCode` обчислюється за тими самими полями (ім'я й група).
+| порожній список | порожні списки й карта; статистика має кількість 0; показники звіту дорівнюють 0 |
+| порожня статистика | `getMax()` дає `-Infinity`, тому `StudentMetrics` перевіряє `getCount()` |
+| `top(list, 0)` | порожній список |
+| `top(list, n)` для завеликого `n` | усі елементи |
+| `top(list, -1)` | `IllegalArgumentException` |
+| ПІБ дублюється | `findByName` повертає перший за порядком |
+| ПІБ відсутній або `null` | `Optional.empty()` |
 
 ## Формат вхідних даних
 
-Файл у UTF-8, один запис у рядку, поля розділені `;` (як і раніше):
+Без змін: файл у UTF-8, один запис у рядку, поля розділені `;`:
 
 ```text
 name;group;course;average;scholarship
 ```
-
-Підтип визначається курсом: 1-4 дає `Bachelor`, 5-6 дає `Master`.
 
 ## Вимоги
 
@@ -66,7 +52,7 @@ macOS / Ubuntu:
 ```bash
 javac -encoding UTF-8 -d out/classes src/main/java/*.java
 java -cp out/classes Main
-java -cp out/classes Main --input data/input-lab03.csv --ratings
+java -cp out/classes Main --input data/input-lab04.csv --queries --find "Іваненко Олена"
 ```
 
 Windows (PowerShell):
@@ -74,14 +60,14 @@ Windows (PowerShell):
 ```powershell
 javac -encoding UTF-8 -d out\classes src\main\java\*.java
 java -cp out\classes Main
-java -cp out\classes Main --input data\input-lab03.csv --ratings
+java -cp out\classes Main --input data\input-lab04.csv --queries --find "Іваненко Олена"
 ```
 
-Параметри: `--help`, `--input FILE` (за замовчуванням `data/input.csv`), `--output FILE` (за замовчуванням `out/report.txt`), `--ratings` (додати розділ «Рейтинги»).
+Параметри: `--help`, `--input FILE`, `--output FILE`, `--ratings` (рейтинги), `--queries` (розділ «Запити»), `--find ПІБ` (пошук, вмикає `--queries`).
 
 ## Перевірка збереження поведінки
 
-Звіт для `data/input.csv` має збігатися з виводом лабораторної №1, а крайові випадки з виводом лабораторної №2:
+Звіти попередніх робіт мають збігатися з еталонами в `baseline/`:
 
 ```bash
 java -cp out/classes Main --output out/report.txt
@@ -89,62 +75,51 @@ diff baseline/lab01-report.txt out/report.txt && echo "Звіт збігаєть
 
 java -cp out/classes Main --input data/edge-cases.csv --output out/edge-report.txt
 diff baseline/lab02-edge-report.txt out/edge-report.txt && echo "Крайові випадки збігаються"
+
+java -cp out/classes Main --input data/input-lab03.csv --ratings --output out/ratings.txt
+diff baseline/lab03-ratings-report.txt out/ratings.txt && echo "Рейтинги збігаються"
 ```
 
-## Перевірка нової моделі
+## Перевірка запитів
 
-Програма `checks/Lab03Check.java` перевіряє підтипи, поліморфний виклик, enum, рівність у `HashSet` і негативні випадки (JUnit на рівні 1 не потрібен).
+Програма `checks/Lab04Check.java` порівнює потокові запити з еталонними цикловими версіями та перевіряє порожній вхід, дублікати, межу фільтра, другий критерій компаратора, `N = 0`, завелике й від'ємне `N`, відсутній результат пошуку та незмінність вхідної колекції. `checks/Lab03Check.java` зберігає перевірки попередньої роботи (JUnit на рівні 1 не потрібен).
 
 macOS / Ubuntu:
 
 ```bash
-javac -encoding UTF-8 -cp out/classes -d out/checks checks/Lab03Check.java
+javac -encoding UTF-8 -cp out/classes -d out/checks checks/Lab03Check.java checks/Lab04Check.java
 java -cp out/classes:out/checks Lab03Check
+java -cp out/classes:out/checks Lab04Check
 ```
 
 Windows (PowerShell, роздільник `;`):
 
 ```powershell
-javac -encoding UTF-8 -cp out\classes -d out\checks checks\Lab03Check.java
+javac -encoding UTF-8 -cp out\classes -d out\checks checks\Lab03Check.java checks\Lab04Check.java
 java -cp "out\classes;out\checks" Lab03Check
+java -cp "out\classes;out\checks" Lab04Check
 ```
 
-Очікуваний останній рядок: `Усі перевірки пройдено`.
-
-## Приклад виводу з рейтингами
-
-```text
-Лабораторна робота №1, варіант 6
-Коректних записів: 5
-Середній бал: 87.78
-Найбільший бал: 95.00
-Кількість стипендіатів: 3
-Пропущено рядків: 2
-Рядок 6: середній бал має бути від 0 до 100
-Рядок 7: очікується 5 полів, знайдено 4
-Рейтинги:
-Іваненко Олена (бакалавр, стипендіат): 97.50
-Петренко Андрій (бакалавр, без стипендії): 78.00
-Коваль Марія (бакалавр, стипендіат): 93.40
-Мельник Дмитро (магістр, без стипендії): 93.50
-Савчук Ірина (магістр, стипендіат): 109.50
-```
+Очікуваний останній рядок обох програм: `Усі перевірки пройдено`.
 
 ## Структура проєкту
 
 ```text
 ├── README.md
-├── report3.md
+├── report4.md
 ├── .gitignore
 ├── baseline/
 │   ├── lab01-input.csv
 │   ├── lab01-report.txt
-│   └── lab02-edge-report.txt
+│   ├── lab02-edge-report.txt
+│   └── lab03-ratings-report.txt
 ├── checks/
-│   └── Lab03Check.java
+│   ├── Lab03Check.java
+│   └── Lab04Check.java
 ├── data/
 │   ├── input.csv
 │   ├── input-lab03.csv
+│   ├── input-lab04.csv
 │   └── edge-cases.csv
 └── src/main/java/
     ├── Learner.java
@@ -152,6 +127,7 @@ java -cp "out\classes;out\checks" Lab03Check
     ├── Master.java
     ├── StudyStatus.java
     ├── LearnerFactory.java
+    ├── LearnerQueries.java
     ├── GradeScholarship.java
     ├── StudentParser.java
     ├── StudentMetrics.java
@@ -161,4 +137,4 @@ java -cp "out\classes;out\checks" Lab03Check
 
 ## Документація
 
-Javadoc додано до всіх публічних класів, конструкторів, методів і enum. Детальний опис наведено в `report3.md`.
+Javadoc додано до всіх публічних класів і методів, зокрема до `LearnerQueries`. Детальний опис наведено в `report4.md`.

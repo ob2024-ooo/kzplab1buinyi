@@ -9,6 +9,8 @@ import java.util.List;
 
 /** Точка входу: консольний звіт про реєстр студентів. */
 public final class Main {
+    /** Кількість студентів у рейтингу запиту «топ-N». */
+    private static final int TOP_N = 5;
 
     /* Забороняє створення екземплярів службового класу. */
     private Main() {
@@ -18,7 +20,9 @@ public final class Main {
      * Запускає програму.
      *
      * @param args {@code --help}, {@code --input файл}, {@code --output файл},
-     *             {@code --ratings} (додатково вивести рейтинги)
+     *             {@code --ratings} (додатково вивести рейтинги),
+     *             {@code --queries} (додатково вивести запити Stream API),
+     *             {@code --find ПІБ} (пошук за ПІБ у розділі запитів)
      */
     public static void main(String[] args) {
         // Явне UTF-8 для консолі: типове кодування Windows може не підтримувати українські літери.
@@ -30,14 +34,21 @@ public final class Main {
         Path input = Path.of("data", "input.csv");
         Path output = Path.of("out", "report.txt");
         boolean ratings = false;
+        boolean queries = false;
+        String find = null;
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
             if ("--help".equals(arg)) {
                 System.out.printf("Використання: java -cp out/classes Main "
-                        + "[--help] [--input <файл>] [--output <файл>] [--ratings]%n");
+                        + "[--help] [--input <файл>] [--output <файл>] [--ratings] [--queries] [--find <ПІБ>]%n");
                 return;
             } else if ("--ratings".equals(arg)) {
                 ratings = true;
+            } else if ("--queries".equals(arg)) {
+                queries = true;
+            } else if ("--find".equals(arg) && i + 1 < args.length) {
+                find = args[++i];
+                queries = true;
             } else if ("--input".equals(arg) && i + 1 < args.length) {
                 input = Path.of(args[++i]);
             } else if ("--output".equals(arg) && i + 1 < args.length) {
@@ -57,6 +68,10 @@ public final class Main {
             if (ratings) {
                 // Рейтинг обчислюється поліморфно: список містить і бакалаврів, і магістрів.
                 report += ReportFormatter.formatRatings(result.students());
+            }
+            if (queries) {
+                // Запити працюють зі спільним типом Learner і не змінюють список.
+                report += ReportFormatter.formatQueries(result.students(), TOP_N, find);
             }
             System.out.print(report);
             Path parent = output.getParent();
