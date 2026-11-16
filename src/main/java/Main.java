@@ -17,7 +17,8 @@ public final class Main {
     /**
      * Запускає програму.
      *
-     * @param args {@code --help}, {@code --input файл}, {@code --output файл}
+     * @param args {@code --help}, {@code --input файл}, {@code --output файл},
+     *             {@code --ratings} (додатково вивести рейтинги)
      */
     public static void main(String[] args) {
         // Явне UTF-8 для консолі: типове кодування Windows може не підтримувати українські літери.
@@ -28,12 +29,15 @@ public final class Main {
         // Path сам обирає правильний роздільник для Windows, macOS та Ubuntu.
         Path input = Path.of("data", "input.csv");
         Path output = Path.of("out", "report.txt");
+        boolean ratings = false;
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
             if ("--help".equals(arg)) {
                 System.out.printf("Використання: java -cp out/classes Main "
-                        + "[--help] [--input <файл>] [--output <файл>]%n");
+                        + "[--help] [--input <файл>] [--output <файл>] [--ratings]%n");
                 return;
+            } else if ("--ratings".equals(arg)) {
+                ratings = true;
             } else if ("--input".equals(arg) && i + 1 < args.length) {
                 input = Path.of(args[++i]);
             } else if ("--output".equals(arg) && i + 1 < args.length) {
@@ -46,10 +50,14 @@ public final class Main {
         try {
             // Кодування задаємо явно, щоб українські літери читались однаково на всіх ОС.
             List<String> lines = Files.readAllLines(input, StandardCharsets.UTF_8);
-            // Рядки перетворюються на об'єкти до обчислень: далі працюємо лише з Student.
+            // Рядки перетворюються на об'єкти до обчислень: далі працюємо лише зі спільним типом Learner.
             StudentParser.ParseResult result = StudentParser.parse(lines);
             GradeScholarship summary = StudentMetrics.summarize(result.students());
             String report = ReportFormatter.format(summary, result.errors());
+            if (ratings) {
+                // Рейтинг обчислюється поліморфно: список містить і бакалаврів, і магістрів.
+                report += ReportFormatter.formatRatings(result.students());
+            }
             System.out.print(report);
             Path parent = output.getParent();
             if (parent != null) {
