@@ -1,5 +1,14 @@
-out/
-*.class
+.venv/
+.venv-wheel/
+dist/
+build/
+*.egg-info/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+reports/*
+!reports/.gitkeep
+data/big.csv
+.DS_Store
 .vscode/
 .idea/
-.DS_Store
