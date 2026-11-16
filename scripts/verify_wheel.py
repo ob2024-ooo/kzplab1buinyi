@@ -12,6 +12,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def main() -> int:
     """Повертає 0, якщо встановлений пакет створює очікуваний звіт."""
+    # Явний UTF-8 для консолі: типове кодування Windows не знає українських літер.
+    for stream in (sys.stdout, sys.stderr):
+        stream.reconfigure(encoding="utf-8")
     wheels = sorted((ROOT / "dist").glob("*.whl"))
     if not wheels:
         print("У dist/ немає wheel: спершу виконайте python -m build", file=sys.stderr)

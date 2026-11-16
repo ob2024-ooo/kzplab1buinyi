@@ -45,6 +45,9 @@ def measure(label: str, action) -> dict[str, object]:
 
 def main() -> int:
     """Запускає порівняння та перевіряє, що результати однакові."""
+    # Явний UTF-8 для консолі: типове кодування Windows не знає українських літер.
+    for stream in (sys.stdout, sys.stderr):
+        stream.reconfigure(encoding="utf-8")
     path = ROOT / "data" / "big.csv"
     generate(path)
     first_rows = list(islice(iter_records(path), 3))  # itertools.islice: лише 3 записи
