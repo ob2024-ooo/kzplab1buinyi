@@ -148,14 +148,16 @@
 
 ## 10. GitHub Issues і Pull Request
 
-Робота виконана в гілці `lab07`, зміни внесено в Pull Request до `main` із порівнянням звітів і результатами перевірок. GitHub Issues не використовувалися.
+Робота виконана в гілці `lab07`. Для кожної частини створено Issue, зміни внесено в Pull Request (https://github.com/ob2024-ooo/kzplab1buinyi/pull/8) із рядками `Closes #N`, порівнянням звітів і результатами перевірок.
 
-| Зміна | Коміт | Перевірка |
+| № Issue | Зміна | Перевірка |
 |---|---|---|
-| Модель: `Learner`, підтипи, `Rated`, dataclass-и | `Add learner model, subtypes and dataclasses` | `tests/test_models.py` |
-| Loader, аналіз і звіт з `ReportWriter` | `Add loader, analysis and reporting` | `test_loader`, `test_analysis`, `test_reporting` |
-| CLI, тести сумісності, скрипти | `Add CLI, compatibility tests and scripts` | `test_cli`, `test_compat`, `verify_wheel.py` |
-| CI, README і звіт | `Add CI workflow, README and report` | GitHub Actions на трьох ОС |
+| #9 | Модель: Learner, Bachelor, Master, Rated | `tests/test_models.py`, `tests/test_analysis.py` |
+| #10 | Властивості та setter-и в `models.py` | `tests/test_models.py` (setter, межі, помилкові значення) |
+| #11 | `LearnerSummary` і `GroupRating` | `tests/test_models.py` (frozen, рівність), `tests/test_analysis.py` |
+| #12 | `loader.py`, `analysis.py`, `reporting.py` | `tests/test_loader.py`, `tests/test_analysis.py`, `tests/test_reporting.py` |
+| #13 | `cli.py`, `tests/legacy_reference.py`, `baseline/` | `tests/test_cli.py`, `tests/test_compat.py`, `scripts/verify_wheel.py` |
+| #14 | `README.md`, `report7.md`, `.github/workflows/ci.yml` | GitHub Actions на Ubuntu, Windows, macOS |
 
 ## 11. Академічна доброчесність
 
